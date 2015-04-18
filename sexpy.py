@@ -13,6 +13,9 @@ class SExp(object):
     def __init__(self, *children):
         self.fn = children[0]
         self.args = children[1:]
+    @property
+    def tpl(self):
+        return (self.fn,) + self.args
     @classmethod
     def parse(cls, string, idents=r'[^()\s]+'):
         def tok_LPAREN(s):
@@ -68,6 +71,8 @@ class SExp(object):
         return _build(stack[0][0])
     def __str__(self):
         return '(%s)'%' '.join(map(str, (self.fn,)+self.args))
+    def __repr__(self):
+        return '(%s)'%' '.join(map(repr, (self.fn,)+self.args))
     def eval(self, context):
         """context is a dict mapping identifiers to functions"""
         if self.fn not in context:
