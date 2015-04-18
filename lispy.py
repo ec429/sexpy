@@ -27,6 +27,12 @@ def do_g(context, arg):
 	return '%g'%numeric(context, arg)
 def do_quote(context, *args):
 	return SExp(*args)
+def do_quasiquote(context, *args):
+	return SExp(*[x.eval(context) if isinstance(x, SExp) else x for x in args])
+def do_join(context, car, cdr):
+	return car.join(cdr.eval(context).tpl)
+def do_apply(context, car, cdr):
+	return SExp(car, *cdr).eval(context)
 
 Functions = {'+': doplus,
 			 '-': dominus,
@@ -37,10 +43,16 @@ Functions = {'+': doplus,
 			 'map': domap,
 			 '%g': do_g,
 			 '`': do_quote,
+			 '#': do_quasiquote,
+			 'join': do_join,
+			 'apply': do_apply,
 			 }
 
 if __name__ == '__main__':
-	s = SExp.parse('(/ (+ 1 (sqrt 5)) 2)')
-	print s.eval(Functions)
-	s = SExp.parse('(map %g (map sqrt (` 1 2 3 4)))')
-	print repr(s.eval(Functions))
+	def test(text):
+		s = SExp.parse(text)
+		print s
+		print '=> %s'%s.eval(Functions)
+	test('(/ (+ 1 (sqrt 5)) 2)')
+	test('(join , (map %g (map sqrt (` 1 2 3 4))))')
+	test('(join , (# a b (join + (` c d))))')
