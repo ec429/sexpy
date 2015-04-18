@@ -7,18 +7,20 @@ class SExp(object):
     """Grammar of SExps:
     sexp     ::= '(' ident arg-list? ')'
     arg-list ::= (ident | word | sexp) arg-list?
+    
+    ident and word both ~= '[^()\s]+'
     """
     def __init__(self, *children):
         self.fn = children[0]
         self.args = children[1:]
     @classmethod
-    def parse(cls, string):
+    def parse(cls, string, idents=r'[^()\s]+'):
         def tok_LPAREN(s):
             return (tok_LPAREN, re.match(r'\(', s))
         def tok_RPAREN(s):
             return (tok_RPAREN, re.match(r'\)', s))
         def tok_IDENT(s):
-            return (tok_IDENT, re.match(r'[a-zA-Z_]\w*', s))
+            return (tok_IDENT, re.match(idents, s))
         def tok_WORD(s):
             return (tok_WORD, re.match(r'[^()\s]+', s))
         def _tokenise(string):
@@ -72,9 +74,21 @@ class SExp(object):
             raise IndexError("Undefined identifier", self.fn)
         return context[self.fn](context, *self.args)
 
+class CSExp(SExp):
+    """Grammar of CSExps:
+    sexp     ::= '(' ident arg-list? ')'
+    arg-list ::= (ident | word | sexp) arg-list?
+    
+    ident ~= '[a-zA-Z_]\w*'
+    word ~= '[^()\s]+'
+    """
+    @classmethod
+    def parse(cls, string, idents=r'[a-zA-Z_]\w*'):
+        return super(CSExp, cls).parse(string, idents=idents)
+
 if __name__ == '__main__':
     test = "(times (sqrt 2) (plus (pi) 1))"
-    s = SExp.parse(test)
+    s = CSExp.parse(test)
     print str(s)
 
     def numeric(context, arg):
