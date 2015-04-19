@@ -17,24 +17,30 @@ class SExp(object):
     def tpl(self):
         return (self.fn,) + self.args
     @classmethod
-    def parse(cls, string, idents=r'[^()\s]+'):
+    def retok(cls, r, s):
+        m = re.match(r, s)
+        if m:
+            return (m.group(0), m.end())
+        return None
+    @classmethod
+    def parse(cls, string, idents=r'[^()\s]+', atoms=[]):
         def tok_LPAREN(s):
-            return (tok_LPAREN, re.match(r'\(', s))
+            return (tok_LPAREN, cls.retok(r'\(', s))
         def tok_RPAREN(s):
-            return (tok_RPAREN, re.match(r'\)', s))
+            return (tok_RPAREN, cls.retok(r'\)', s))
         def tok_IDENT(s):
-            return (tok_IDENT, re.match(idents, s))
+            return (tok_IDENT, cls.retok(idents, s))
         def tok_WORD(s):
-            return (tok_WORD, re.match(r'[^()\s]+', s))
+            return (tok_WORD, cls.retok(r'[^()\s]+', s))
         def _tokenise(string):
-            tokens = [tok_LPAREN, tok_RPAREN, tok_IDENT, tok_WORD]
+            tokens = [tok_LPAREN, tok_RPAREN] + atoms + [tok_IDENT, tok_WORD]
             string = string.lstrip()
             if not string:
                 return []
             for tok in tokens:
                 l, v = tok(string)
                 if v:
-                    return [(l, v.group(0))] + _tokenise(string[v.end():])
+                    return [(l, v[0])] + _tokenise(string[v[1]:])
             raise ValueError("Untokenisable string", string)
         tokens = _tokenise(string)
         stack = [[]]
@@ -47,7 +53,7 @@ class SExp(object):
             else:
                 if len(stack) > 1 and not stack[-1]:
                     raise ValueError("%s after LPAREN, expected IDENT"%typ.__name__, val)
-                if typ == tok_WORD:
+                if typ == tok_WORD or typ in atoms:
                     stack[-1].append(('wd', val))
                 elif typ == tok_LPAREN:
                     stack.append([])
@@ -70,7 +76,11 @@ class SExp(object):
                 return tree[1]
         return _build(stack[0][0])
     def __str__(self):
-        return '(%s)'%' '.join(map(str, (self.fn,)+self.args))
+        def strish(s):
+            if isinstance(s, str) and re.search('\s', s):
+                return "'%s'"%s
+            return str(s)
+        return '(%s)'%' '.join(map(strish, (self.fn,)+self.args))
     def __repr__(self):
         return '(%s)'%' '.join(map(repr, (self.fn,)+self.args))
     def eval(self, context):
@@ -79,17 +89,26 @@ class SExp(object):
             raise IndexError("Undefined identifier", self.fn)
         return context[self.fn](context, *self.args)
 
+def tok_STRING(s):
+    m = re.match(r'"((?:[^"]|\")*)"', s)
+    if m:
+        return (tok_STRING, (m.group(1), m.end()))
+    m = re.match(r"'((?:[^']|\')*)'", s)
+    if m:
+        return (tok_STRING, (m.group(1), m.end()))
+    return (tok_STRING, None)
+
 class CSExp(SExp):
     """Grammar of CSExps:
     sexp     ::= '(' ident arg-list? ')'
-    arg-list ::= (ident | word | sexp) arg-list?
+    arg-list ::= (ident | word | "string" | sexp) arg-list?
     
     ident ~= '[a-zA-Z_]\w*'
     word ~= '[^()\s]+'
     """
     @classmethod
-    def parse(cls, string, idents=r'[a-zA-Z_]\w*'):
-        return super(CSExp, cls).parse(string, idents=idents)
+    def parse(cls, string, idents=r'[a-zA-Z_]\w*', atoms=[tok_STRING]):
+        return super(CSExp, cls).parse(string, idents=idents, atoms=atoms)
 
 if __name__ == '__main__':
     test = "(times (sqrt 2) (plus (pi) 1))"

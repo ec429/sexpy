@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from sexpy import SExp
+from sexpy import SExp, tok_STRING
 import math
 
 def numeric(context, arg):
@@ -50,9 +50,9 @@ Functions = {'+': doplus,
 
 if __name__ == '__main__':
 	def test(text):
-		s = SExp.parse(text)
+		s = SExp.parse(text, atoms=[tok_STRING])
 		print s
 		print '=> %s'%s.eval(Functions)
 	test('(/ (+ 1 (sqrt 5)) 2)')
 	test('(join , (map %g (map sqrt (` 1 2 3 4))))')
-	test('(join , (# a b (join + (` c d))))')
+	test("(# 'a b' (join + (` c d)))")
