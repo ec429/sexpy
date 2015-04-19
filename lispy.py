@@ -2,6 +2,7 @@
 
 from sexpy import SExp, tok_STRING
 import math
+import sys
 
 def numeric(context, arg):
     """Interpret a value, which is either an SExp or a string, as a number."""
@@ -82,6 +83,18 @@ if __name__ == '__main__':
     test("(# 'a b' (join + (` c d)))")
     test('(cdr (` 1 2))')
     test('(apply + (cdr (` 1 2)))')
+    save = dict(Functions)
     # define a function that behaves like '+', but must have at least one argument
     test('(setf plus (lambda x (+ (car (x)) (apply + (cdr (x))))))')
     test('(plus 1 2 3)')
+    Functions = save
+    try:
+        while True:
+            line = raw_input()
+            try:
+                s = SExp.parse(line, atoms=[tok_STRING])
+                print '=> %r'%(s.eval(Functions),)
+            except Exception as e:
+                print '<<', repr(e)
+    except EOFError:
+        pass
