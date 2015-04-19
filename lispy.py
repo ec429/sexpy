@@ -66,6 +66,12 @@ def do_car(context, arg):
     return arg.eval(context).tpl[0]
 def do_cdr(context, arg):
     return SExp(*arg.eval(context).tpl[1:])
+def do_cond(context, car, et, enil):
+    if car.eval(context):
+        return et
+    return enil
+def do_eval(context, car):
+    return car.eval(context).eval(context)
 
 Functions = {'+': doplus,
              '-': dominus,
@@ -87,6 +93,8 @@ Functions = {'+': doplus,
              'lambda': do_lambda,
              'car': do_car,
              'cdr': do_cdr,
+             'cond': do_cond,
+             'eval': do_eval,
              }
 
 if __name__ == '__main__':
@@ -112,6 +120,8 @@ if __name__ == '__main__':
     # define a nullary function (and appease the tauists)
     test('(setf tau (* 2 (pi)))')
     test('(tau)')
+    # demonstrate conditionals (and piss the tauists off again)
+    test('(eval (cond (tau sucks) (pi) (tau)))')
     import readline
     try:
         while True:
