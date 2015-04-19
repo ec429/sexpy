@@ -20,7 +20,7 @@ def dotimes(context, *args):
 def dodiv(context, car, *cdr):
     return numeric(context, car) / dotimes(context, *cdr)
 def dosqrt(context, arg):
-    return math.sqrt(float(arg))
+    return math.sqrt(numeric(context, arg))
 def domap(context, car, cdr):
     return SExp(*[SExp(car, x).eval(context) for x in cdr.eval(context).tpl])
 def do_g(context, arg):
@@ -33,17 +33,29 @@ def do_join(context, car, cdr):
     return car.join(cdr.eval(context).tpl)
 def do_apply(context, car, cdr):
     return SExp(car, *cdr.eval(context).tpl).eval(context)
+def do_fapply(context, car, cdr):
+    return SExp(car.eval(context), *cdr.eval(context).tpl).eval(context)
+def do_ff(context, car, cdr):
+    return SExp(car.eval(context), cdr.eval(context)).eval(context)
 def do_setf(context, car, cdr):
     if car in context:
         raise Exception("Redefinition of", car, "as", cdr, " - was", context[car])
-    def f(_context, _car, _cdr):
-        return context[cdr](_context, _car, _cdr)
+    return do_setf_bang(context, car, cdr)
+def do_setf_bang(context, car, cdr):
     if isinstance(cdr, SExp):
         cdr = cdr.eval(context)
     if callable(cdr):
         context[car] = cdr
     else:
+        def f(_context, *_args):
+            if cdr in context:
+                return context[cdr](_context, *_args)
+            return cdr
         context[car] = f
+def do_unsetf(context, car):
+    if car not in context:
+        raise Exception("Can't unset", car, " - not set!")
+    del context[car]
 def do_lambda(context, car, cdr):
     def f(_context, *args):
         ctx = dict(context)
@@ -67,7 +79,11 @@ Functions = {'+': doplus,
              '#': do_quasiquote,
              'join': do_join,
              'apply': do_apply,
+             'f-apply': do_fapply,
+             'ff': do_ff,
              'setf': do_setf,
+             'setf!': do_setf_bang,
+             'unsetf':do_unsetf,
              'lambda': do_lambda,
              'car': do_car,
              'cdr': do_cdr,
@@ -88,6 +104,15 @@ if __name__ == '__main__':
     test('(setf plus (lambda x (+ (car (x)) (apply + (cdr (x))))))')
     test('(plus 1 2 3)')
     Functions = save
+    # define a function that composes other functions
+    test('(setf . (lambda x (lambda y (ff (car (x)) (f-apply (car (cdr (x))) (y))))))')
+    # ... and use it
+    test('(setf fourth (. sqrt sqrt))')
+    test('(fourth 81)')
+    # define a nullary function (and appease the tauists)
+    test('(setf tau (* 2 (pi)))')
+    test('(tau)')
+    import readline
     try:
         while True:
             line = raw_input()
