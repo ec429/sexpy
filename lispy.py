@@ -13,21 +13,21 @@ def numeric(context, arg):
     except:
         sys.stderr.write("arg was %s\n"%(arg,))
         raise
-def doplus(context, *args):
+def do_plus(context, *args):
     return sum(numeric(context, arg) for arg in args)
-def dominus(context, car, *cdr):
-    return numeric(context, car) - doplus(context, *cdr)
-def dotimes(context, *args):
+def do_minus(context, car, *cdr):
+    return numeric(context, car) - do_plus(context, *cdr)
+def do_times(context, *args):
     if len(args):
-        return numeric(context, args[0]) * dotimes(context, *args[1:])
+        return numeric(context, args[0]) * do_times(context, *args[1:])
     return 1
-def dodiv(context, car, *cdr):
-    return numeric(context, car) / dotimes(context, *cdr)
-def dosqrt(context, arg):
+def do_div(context, car, *cdr):
+    return numeric(context, car) / do_times(context, *cdr)
+def do_sqrt(context, arg):
     return math.sqrt(numeric(context, arg))
-def domap(context, car, cdr):
+def do_map(context, car, cdr):
     return SExp(*[SExp(car, x).eval(context) for x in cdr.eval(context).tpl])
-def do_g(context, arg):
+def do__g(context, arg):
     return '%g'%numeric(context, arg)
 def do_quote(context, *args):
     return SExp(*args)
@@ -79,14 +79,14 @@ def do_eval(context, car):
     with a cdr that might want to return no elements."""
     return car.eval(context).eval(context)
 
-Functions = {'+': doplus,
-             '-': dominus,
-             '*': dotimes,
-             '/': dodiv,
-             'sqrt': dosqrt,
+Functions = {'+': do_plus,
+             '-': do_minus,
+             '*': do_times,
+             '/': do_div,
+             'sqrt': do_sqrt,
              'pi': lambda _:math.pi,
-             'map': domap,
-             '%g': do_g,
+             'map': do_map,
+             '%g': do__g,
              '`': do_quote,
              '#': do_quasiquote,
              'join': do_join,
