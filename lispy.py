@@ -71,6 +71,12 @@ def do_cond(context, car, et, enil):
         return et
     return enil
 def do_eval(context, car):
+    """(eval) needs to exist, but shouldn't.  Ideally we'd be able to use
+    (apply (function) (`)), and this would evaluate (function), then evaluate
+    the result with no arguments (because cdr.eval(context).tpl would be the
+    empty tuple).  Unfortunately, (`) is disallowed because an SExpr must have
+    a fn, so you can't quote nothing.  This might cause problems if using apply
+    with a cdr that might want to return no elements."""
     return car.eval(context).eval(context)
 
 Functions = {'+': doplus,
