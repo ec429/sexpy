@@ -6,9 +6,13 @@ import sys
 
 def numeric(context, arg):
     """Interpret a value, which is either an SExp or a string, as a number."""
-    if isinstance(arg, SExp):
-        arg = arg.eval(context)
-    return float(arg)
+    try:
+        if isinstance(arg, SExp):
+            arg = arg.eval(context)
+        return float(arg)
+    except:
+        sys.stderr.write("arg was %s\n"%(arg,))
+        raise
 def doplus(context, *args):
     return sum(numeric(context, arg) for arg in args)
 def dominus(context, car, *cdr):
@@ -32,11 +36,7 @@ def do_quasiquote(context, *args):
 def do_join(context, car, cdr):
     return car.join(cdr.eval(context).tpl)
 def do_apply(context, car, cdr):
-    return SExp(car, *cdr.eval(context).tpl).eval(context)
-def do_fapply(context, car, cdr):
     return SExp(car.eval(context), *cdr.eval(context).tpl).eval(context)
-def do_ff(context, car, cdr):
-    return SExp(car.eval(context), cdr.eval(context)).eval(context)
 def do_setf(context, car, cdr):
     if car in context:
         raise Exception("Redefinition of", car, "as", cdr, " - was", context[car])
@@ -85,8 +85,6 @@ Functions = {'+': doplus,
              '#': do_quasiquote,
              'join': do_join,
              'apply': do_apply,
-             'f-apply': do_fapply,
-             'ff': do_ff,
              'setf': do_setf,
              'setf!': do_setf_bang,
              'unsetf':do_unsetf,
@@ -99,21 +97,26 @@ Functions = {'+': doplus,
 
 if __name__ == '__main__':
     def test(text):
-        s = SExp.parse(text, atoms=[tok_STRING])
-        print s
-        print '=>', repr(s.eval(Functions))
+        try:
+            s = SExp.parse(text, atoms=[tok_STRING])
+            print s
+            print '=> %r'%(s.eval(Functions),)
+        except Exception as e:
+            print '<<', repr(e)
+            sys.excepthook(*sys.exc_info())
+    test("(setf symb (lambda f (car (car (# (f))))))")
     test('(/ (+ 1 (sqrt 5)) 2)')
     test('(join , (map %g (map sqrt (` 1 2 3 4))))')
     test("(# 'a b' (join + (` c d)))")
     test('(cdr (` 1 2))')
-    test('(apply + (cdr (` 1 2)))')
+    test('(apply (car (` +)) (cdr (` 1 2)))')
     save = dict(Functions)
     # define a function that behaves like '+', but must have at least one argument
-    test('(setf plus (lambda x (+ (car (x)) (apply + (cdr (x))))))')
+    test('(setf plus (lambda x (+ (car (x)) (apply (symb +) (cdr (x))))))')
     test('(plus 1 2 3)')
     Functions = save
     # define a function that composes other functions
-    test('(setf . (lambda x (lambda y (ff (car (x)) (f-apply (car (cdr (x))) (y))))))')
+    test('(setf . (lambda x (lambda y (apply (car (x)) (# (apply (car (cdr (x))) (y)))))))')
     # ... and use it
     test('(setf fourth (. sqrt sqrt))')
     test('(fourth 81)')
@@ -131,5 +134,6 @@ if __name__ == '__main__':
                 print '=> %r'%(s.eval(Functions),)
             except Exception as e:
                 print '<<', repr(e)
+                sys.excepthook(*sys.exc_info())
     except EOFError:
         pass
