@@ -1,0 +1,66 @@
+=sexpy, lispy and sml=
+
+What is sexpy?
+--------------
+sexpy is an S-expression parser with built-in evaluation semantics.  It converts
+ a string representation of an S-expression into a tree of objects, and defines
+ an evaluation method where the car (first element) of an S-expression is used
+ to look up a function, which is then passed the cdr (remaining elements) as its
+ arguments.  This is strictly more restrictive than normal S-expressions, since
+ it forces the car to be an identifier; it cannot (for instance) be another
+ S-expression.  (That is, sexpy does not allow consecutive lparens.)
+
+What is the purpose of sexpy?
+-----------------------------
+sexpy is a convenient way to build S-expression-based data formats and domain-
+ specific minilanguages, as demonstrated by sml.  It is also in principle
+ possible to build general-purpose languages, like lispy, using sexpy; however
+ it is unclear whether there is any good reason to do so.
+
+What is lispy?
+--------------
+lispy is a somewhat LISP-like general-purpose programming language.  It is not
+ a true LISP; indeed it contains some design decisions which might be described
+ as heretical.  Some of these stem from the restrictions imposed by sexpy, while
+ others are chiefly a matter of implementation convenience.
+lispy is very much incomplete; it is currently of little use beyond a four-
+ function calculator.  It does however possess a collection of functional-
+ programming constructs (map, cond, lambda etc.) which probably make it Turing
+ complete already.
+One notable way in which lispy differs from true LISPs is that its lists (and,
+ by implication, the code of S-expressions) are Python native lists, rather than
+ linked-lists made of conses.  This means that lists cannot 'share tails'.
+
+What is the purpose of lispy?
+-----------------------------
+To prove it can be done :)
+That is, to demonstrate by example that sexpy's semantics admit arbitrarily
+ complex and rich constructions.
+Also, it may be convenient for some domain-specific minilanguages to import
+ lispy, or parts of lispy, to avoid the need to roll their own control flow
+ constructs and suchlike.
+
+What is sml?
+------------
+SML, or Sexpy Markup Language, is a minilanguage for expressing HTML documents
+ or fragments within S-expressions.  Essentially it represents both tags and
+ attributes as cars, relying on the parent element to disambiguate.  So for
+ instance (href /index.htm) is clearly an attribute, whereas (p Some text) is
+ an element.
+SML evaluates to an object tree whose __str__ method generates the usual HTML
+ representation (XML, or maybe it's SGML, who's counting?).
+
+What is the purpose of sml?
+---------------------------
+Other domain-specific minilanguages can embed sml, thus defining an 'HTML object
+ type'.  For instance, a backend for a blog might store articles as
+ S-expressions, containing several metadata fields (eg. author, date, title for
+ an index page...) and a 'content' field containing the article HTML in SML
+ form.  Then other page fragments - e.g. the header and footer for article pages
+ - could be kept in SML as well, and the code to combine the various fragments
+ and generate pages could be written in lispy.
+Hopefully, the combination of sml and lispy will be shown to be a superior
+ alternative to the XML+XSLT combination in vogue in some quarters for
+ representing structured data semantically and generating presentational forms
+ of that data.  No-one is going to bother with the Semantic Web if they have to
+ learn XSLT to do so; but many hackers are looking for an excuse to use LISP.
