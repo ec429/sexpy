@@ -11,10 +11,15 @@ class SExp(object):
     ident and word both ~= '[^()\s]+'
     """
     def __init__(self, *children):
-        self.fn = children[0]
+        if children:
+            self.fn = children[0]
+        else:
+            self.fn = None
         self.args = children[1:]
     @property
     def tpl(self):
+        if self.fn is None:
+            return ()
         return (self.fn,) + self.args
     @classmethod
     def retok(cls, r, s):
@@ -76,12 +81,16 @@ class SExp(object):
                 return tree[1]
         return _build(stack[0][0])
     def __str__(self):
+        if self.fn is None:
+            return 'nil'
         def strish(s):
             if isinstance(s, str) and re.search('\s', s):
                 return "'%s'"%s
             return str(s)
         return '(%s)'%' '.join(map(strish, (self.fn,)+self.args))
     def __repr__(self):
+        if self.fn is None:
+            return 'nil'
         return '(%s)'%' '.join(map(repr, (self.fn,)+self.args))
     def eval(self, context):
         """context is a dict mapping identifiers to functions"""

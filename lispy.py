@@ -36,7 +36,12 @@ def do_quasiquote(context, *args):
 def do_join(context, car, cdr):
     return car.join(cdr.eval(context).tpl)
 def do_apply(context, car, cdr):
-    return SExp(car.eval(context), *cdr.eval(context).tpl).eval(context)
+    fn = car.eval(context)
+    if isinstance(fn, SExp):
+        if fn.args:
+            raise Exception("First argument to apply", car, "does not yield single item")
+        fn = fn.fn
+    return SExp(fn, *cdr.eval(context).tpl).eval(context)
 def do_setf(context, car, cdr):
     if car in context:
         raise Exception("Redefinition of", car, "as", cdr, " - was", context[car])
@@ -71,12 +76,9 @@ def do_cond(context, car, et, enil):
         return et
     return enil
 def do_eval(context, car):
-    """(eval) needs to exist, but shouldn't.  Ideally we'd be able to use
-    (apply (function) (`)), and this would evaluate (function), then evaluate
-    the result with no arguments (because cdr.eval(context).tpl would be the
-    empty tuple).  Unfortunately, (`) is disallowed because an SExpr must have
-    a fn, so you can't quote nothing.  This might cause problems if using apply
-    with a cdr that might want to return no elements."""
+    """It ought to be possible to (setf eval (lambda function (apply function (`)))), but
+    do_lambda wraps the variable in one layer of evaluation too many for that to work.
+    It turns out do_eval is needed for lambdas to be useful."""
     return car.eval(context).eval(context)
 
 Functions = {'+': do_plus,
